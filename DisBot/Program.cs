@@ -24,8 +24,34 @@ Task CommandHendler(SocketMessage msg)
 {
     if (!msg.Author.IsBot)
     {
-        msg.Channel.SendMessageAsync(msg.Content);
+        //msg.Channel.SendMessageAsync(msg.Content);
+        switch (msg.Content)
+        {
+            case "/start":
+                msg.Channel.SendMessageAsync($"Что пожелаешть? {msg.Author}");
+                Console.WriteLine(msg.Content);
+                break;
+            default:
+                break;
+        }
     }
     return Task.CompletedTask;
 }
-MainAsync().GetAwaiter().GetResult();
+void BackProc()
+{ 
+    MainAsync().GetAwaiter().GetResult();
+}
+
+
+
+async Task Spawn()
+{
+    var builder = new ComponentBuilder()
+        .WithButton("label", "custom-id");
+
+    //await ReplyAsync("Here is a button!", components: builder.Build());
+}
+
+Thread task = new Thread(BackProc);
+task.Start();
+Console.WriteLine("Проверка кода");
