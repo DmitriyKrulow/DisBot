@@ -4,6 +4,7 @@ global using Discord.Commands;
 global using System.Threading.Tasks;
 global using Newtonsoft.Json;
 global using Discord.Net;
+global using System.Net;
 // See https://aka.ms/new-console-template for more information
 //DiscordSocketClient _client;
 async Task MainAsync()
@@ -44,6 +45,14 @@ void LoggingService(DiscordSocketClient client, CommandService command)
 //    await ReplyAsync("Here is a button!", components: builder.Build());
 //}
 
+async void DownloadFile(string url, string fileName) 
+{
+    WebClient clientWeb;
+    clientWeb = new WebClient();
+    await clientWeb.DownloadFileTaskAsync(new Uri(url), fileName);
+}
+
+
 Task Log(LogMessage msg)
 {
     //Console.WriteLine(msg.ToString());
@@ -69,13 +78,14 @@ Task CommandHendler(SocketMessage msg)
                 Console.WriteLine(msg.Content);
                 break;
             case "/file":
-                msg.Channel.SendMessageAsync($"Что пожелаешть? {msg.Author}");              
+                msg.Channel.SendMessageAsync($"Может не будем смотреть? ;) {msg.Author}");              
                 break;
             default:
                 if (msg.Attachments.GetType() != null)
                 {
                     Console.WriteLine(msg.Attachments.ElementAt(0).ContentType);
                     Console.WriteLine(msg.Attachments.ElementAt(0).Url);
+                    DownloadFile(msg.Attachments.ElementAt(0).Url, "file/" +msg.Attachments.ElementAt(0).Filename);
                 }
                 else 
                 {
