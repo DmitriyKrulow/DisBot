@@ -1,61 +1,55 @@
-﻿global using  Discord;
-global using  Discord.WebSocket;
+﻿global using Discord;
 global using Discord.Commands;
-global using System.Threading.Tasks;
-global using Newtonsoft.Json;
-global using Discord.Net;
+global using Discord.WebSocket;
+global using System.IO;
 global using System.Net;
-// See https://aka.ms/new-console-template for more information
-//DiscordSocketClient _client;
+global using System.Threading.Tasks;
+bool saveFlag = false;
 async Task MainAsync()
 {
-    var _config = new DiscordSocketConfig 
-    { 
-        MessageCacheSize = 100 
+    var _config = new DiscordSocketConfig
+    {
+        MessageCacheSize = 100
     };
     var command = new CommandService();
     DiscordSocketClient _client = new DiscordSocketClient(_config);
     _client.MessageReceived += CommandHendler;
     LoggingService(_client, command);
-    //command.Log += Log;
-    //_client.Log += Log;
     var token = File.ReadAllText(@"Token.txt");
     await _client.LoginAsync(TokenType.Bot, token);
     await _client.StartAsync();
-
     _client.MessageUpdated += MessageUpdated;
     await Task.Delay(-1);
 }
-//Лог изменений в сообщениях с учетом кеширования.
-async  Task MessageUpdated(Cacheable<IMessage, ulong> before, SocketMessage after, ISocketMessageChannel channel)
-    {
-        // If the message was not in the cache, downloading it will result in getting a copy of `after`.
-        var message = await before.GetOrDownloadAsync();
-        Console.WriteLine($"{message} -> {after}");
-    }
+async Task MessageUpdated(Cacheable<IMessage, ulong> before, SocketMessage after, ISocketMessageChannel channel)
+{
+    var message = await before.GetOrDownloadAsync();
+    Console.WriteLine($"{message} -> {after}");
+}
 void LoggingService(DiscordSocketClient client, CommandService command)
-    {
-        client.Log += Log;
-        command.Log += Log;
-    }
-//async Task Spawn()
-//{
-//    ComponentBuilder builder = new ComponentBuilder()
-//                .WithButton("label", "custom-id");
-//    await ReplyAsync("Here is a button!", components: builder.Build());
-//}
-
-async void DownloadFile(string url, string fileName) 
+{
+    client.Log += Log;
+    command.Log += Log;
+}
+async void DownloadFile(string url, string fileName)
 {
     WebClient clientWeb;
     clientWeb = new WebClient();
     await clientWeb.DownloadFileTaskAsync(new Uri(url), fileName);
 }
-
-
+static void PrintFile(string targetDirectory, SocketMessage msg)
+{
+    string[] fileEntries = Directory.GetFiles(targetDirectory);
+    foreach (string fileName in fileEntries)
+        ProcessFile(fileName, msg);
+}
+static void ProcessFile(string path, SocketMessage msg)
+{
+    Console.WriteLine("Processed file '{0}'.", path);
+    msg.Channel.SendFileAsync(path);
+}
 Task Log(LogMessage msg)
 {
-    //Console.WriteLine(msg.ToString());
     if (msg.Exception is CommandException cmdException)
     {
         Console.WriteLine($"[Command/{msg.Severity}] {cmdException.Command.Aliases.First()}"
@@ -68,40 +62,40 @@ Task Log(LogMessage msg)
 }
 Task CommandHendler(SocketMessage msg)
 {
+
     if (!msg.Author.IsBot)
     {
-        //msg.Channel.SendMessageAsync(msg.Content);
         switch (msg.Content)
         {
             case "/start":
-                msg.Channel.SendMessageAsync($"Что пожелаешть? {msg.Author}");
+                if (saveFlag)
+                    msg.Channel.SendMessageAsync($"Поработал, обращайся ещё {msg.Author}");
+                else
+                    msg.Channel.SendMessageAsync($"Начинаю сохранять файлы {msg.Author}");
+                saveFlag = !saveFlag;
                 Console.WriteLine(msg.Content);
+                Console.WriteLine(saveFlag);
                 break;
             case "/file":
-                msg.Channel.SendMessageAsync($"Может не будем смотреть? ;) {msg.Author}");              
+                msg.Channel.SendMessageAsync($"Может не будем смотреть? ;) {msg.Author}");
+                PrintFile(@"file", msg);
                 break;
             default:
-                if (msg.Attachments.GetType() != null)
+                if ((msg.Attachments.GetType() != null) && saveFlag)
                 {
                     Console.WriteLine(msg.Attachments.ElementAt(0).ContentType);
                     Console.WriteLine(msg.Attachments.ElementAt(0).Url);
-                    DownloadFile(msg.Attachments.ElementAt(0).Url, "file/" +msg.Attachments.ElementAt(0).Filename);
+                    DownloadFile(msg.Attachments.ElementAt(0).Url, "file/" + msg.Attachments.ElementAt(0).Filename);
                 }
-                else 
-                {
-                    Console.WriteLine(msg.Content);
-                }
-                
                 break;
         }
     }
     return Task.CompletedTask;
 }
 void BackProc()
-{ 
+{
     MainAsync().GetAwaiter().GetResult();
 }
-
 Thread task = new Thread(BackProc);
 task.Start();
 Console.WriteLine("Проверка кода");
